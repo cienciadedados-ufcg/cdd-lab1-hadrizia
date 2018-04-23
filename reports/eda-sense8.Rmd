@@ -16,9 +16,9 @@ library(here)
 theme_set(theme_bw())
 ```
 
-Neste laboratório, analisaremos os episódios de três séries de TV: Friends, Desperate Housewives e House.
+Neste laboratório, serão analisados os episódios de três séries de TV: Friends, Desperate Housewives e House.
 
-## O primeiro passo desta análise é importar os dados e filtrar as séries de interesse.
+## O primeiro passo desta análise é importar os dados a serem utilizados e filtrar as séries de interesse.
 
 ```{r}
 episodes = read_csv(here("data/series_from_imdb.csv"), 
@@ -31,31 +31,21 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
     filter(series_name %in% c("Friends", "Desperate Housewives", "House"))
 ```
 
-## O segundo passo é responder às seguintes perguntas:
+## O próximo passo é responder às seguintes perguntas:
 
- * a. Qual das séries que você escolheu é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
- * b. Qual das séries que você escolheu tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena?
+ * a. Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
+ * b. Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena?
 
 ###  Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
-```{r}
-episodes = read_csv(here("data/series_from_imdb.csv"), 
-                    progress = FALSE,
-                    col_types = cols(.default = col_double(), 
-                                     series_name = col_character(), 
-                                     episode = col_character(), 
-                                     url = col_character(),
-                                     season = col_character())) #%>% 
-#    filter(series_name == "Sense8") 
-```
-  
-  O critério para escolha da série mais bem avaliada foi escolhido de acordo com a proporção de usuários que votaram nota máxima em cada episódio.
+
+  O critério para escolha da série mais bem avaliada foi escolhido de acordo com o número de usuários que deram nota máxima em cada episódio.
   
 ```{r}
-episodes %>% group_by(series_name) %>% mutate(num_ep = n()) %>% mutate(median_r10 = r10/num_ep) %>% #summarise(cont = sum(r10/num_ep)) %>%
-  ggplot(aes(x = series_name, y = median_r10, fill = "red")) +
+episodes %>% group_by(series_name) %>%  mutate(r10_votes = r10 * user_votes) %>% arrange(-r10_votes) %>%
+  ggplot(aes(x = series_name, y = r10_votes, fill = "red")) +
   geom_bar(stat="identity") +
   theme(legend.position = 'None') + 
-  labs(x = "Séries", y = "Avaliação no IMDB")
+  labs(x = "Séries", y = "Número de avaliações com nota máxima no IMDB")
   
 ```
 
@@ -64,7 +54,7 @@ episodes %>% group_by(series_name) %>% mutate(num_ep = n()) %>% mutate(median_r1
 Cada episódio foi avaliado por um número diferente de usuários do IMDB. Vejamos como é essa distribuição. 
 
 ```{r}
-episodes %>% 
+episodes %>% filter(series_name == 'Friends') %>%
     ggplot(aes(x = season, y = user_votes)) +
     geom_violin() + 
     geom_jitter(width = .07) 
@@ -158,7 +148,7 @@ episodes %>%
 ## Qual o episódio mais detestado? 
 
 ```{r}
-episodes %>% 
+episodes %>% filter (series_name == 'Friends') %>%
     ggplot(aes(x = season_ep, y = r1, color = season)) + 
     geom_line() + 
     scale_x_continuous(breaks = 1:12)
@@ -167,10 +157,10 @@ episodes %>%
 ### E amado? 
 
 ```{r}
-episodes %>%
+episodes %>% filter (series_name == 'Friends') %>%
     ggplot(aes(x = season_ep, y = r10, color = season)) +
-    geom_line() +
-    scale_x_continuous(breaks = 1:12)
+    geom_line()# +
+    #scale_x_continuous(breaks = 1:12)
 ```
 
 ### Amor e ódio andam juntos?
