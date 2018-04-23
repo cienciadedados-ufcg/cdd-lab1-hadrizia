@@ -1,5 +1,5 @@
 ---
-title: "EDA Sense8"
+title: "Dados sobre séries de TV"
 output:
   html_notebook:
     toc: yes
@@ -16,9 +16,9 @@ library(here)
 theme_set(theme_bw())
 ```
 
-Analisaremos os episódios da falecida série Sense8. 
+Neste laboratório, analisaremos os episódios de três séries de TV: Friends, Desperate Housewives e House.
 
-Houve duas temporadas: quais foram os melhores episódios? A melhor temporada?
+## O primeiro passo desta análise é importar os dados e filtrar as séries de interesse.
 
 ```{r}
 episodes = read_csv(here("data/series_from_imdb.csv"), 
@@ -28,7 +28,35 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
                                      episode = col_character(), 
                                      url = col_character(),
                                      season = col_character())) %>% 
-    filter(series_name == "Sense8") 
+    filter(series_name %in% c("Friends", "Desperate Housewives", "House"))
+```
+
+## O segundo passo é responder às seguintes perguntas:
+
+ * a. Qual das séries que você escolheu é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
+ * b. Qual das séries que você escolheu tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena?
+
+###  Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
+```{r}
+episodes = read_csv(here("data/series_from_imdb.csv"), 
+                    progress = FALSE,
+                    col_types = cols(.default = col_double(), 
+                                     series_name = col_character(), 
+                                     episode = col_character(), 
+                                     url = col_character(),
+                                     season = col_character())) #%>% 
+#    filter(series_name == "Sense8") 
+```
+  
+  O critério para escolha da série mais bem avaliada foi escolhido de acordo com a proporção de usuários que votaram nota máxima em cada episódio.
+  
+```{r}
+episodes %>% group_by(series_name) %>% mutate(num_ep = n()) %>% mutate(median_r10 = r10/num_ep) %>% #summarise(cont = sum(r10/num_ep)) %>%
+  ggplot(aes(x = series_name, y = median_r10, fill = "red")) +
+  geom_bar(stat="identity") +
+  theme(legend.position = 'None') + 
+  labs(x = "Séries", y = "Avaliação no IMDB")
+  
 ```
 
 ## Quantas avaliações temos por episódio? 
@@ -53,14 +81,15 @@ episodes %>%
 
 A quantidade de avaliações varia bastante. Exceto pelo primeiro episódio, os episódios da segunda temporada tem muito menos avaliações. Talvez porque os dados foram coletados logo depois que a segunda temporada foi lançada. 
 
-## Qual a distribuição da avaliação dos episódios?
+## Qual a distribuição da avaliação por série?
 
 ```{r}
 episodes %>% 
-    ggplot(aes(x = "Sense8", y = user_rating)) + 
+  group_by(series_name) %>%
+    ggplot(aes(x = series_name, y = user_rating)) + 
     geom_jitter(width = .05) +
     ylim(5, 10) + 
-    labs(x = "Episódios", y = "Avaliação no IMDB")
+    labs(x = "Séries", y = "Avaliação no IMDB")
 ```
 
 ```{r}
@@ -91,14 +120,18 @@ episodes %>%
 ```
 
 
-## Qual a pior/melhor temporada segundo o IMDB?
+## Distribuição de avaliações por seriado.
 
 ```{r}
 episodes %>% 
-    ggplot(aes(x = season, y = user_rating)) + 
+  group_by(series_name) %>%
+    ggplot(aes(x = series_name, y = user_rating)) + 
     geom_boxplot(width = .5, outlier.color = NA) +   
-    geom_jitter(width = .1, size = 2, alpha = .5, color = "red")
+    geom_jitter(width = .1, size = 2, alpha = .5, color = "red") +
+  labs(x = "Séries", y = "Avaliação no IMDB")
 ```
+  
+  Como se pode perceber nos boxplots acima, o seriado Desperate Housewives possui a maior parte de suas avaliações entre 7.5 e 8.2. Também é possível notar que poucos episódios estão acima de nota 9.0. A série de comédia Friends possui a maior parte de suas avaliações entre 8.0 e 9.0, contendo mais episódios acima de 9.0 que as demais séries. House possui mediana próxima a 8.6, o que significa que metade de suas avaliações estão abaixo dessa nota e metade está acima. Pode-se notar também que suas avaliações se concentram entre 8.0 e 9.5.
 
 
 ### Há padrões na avaliação ao longo do tempo?
