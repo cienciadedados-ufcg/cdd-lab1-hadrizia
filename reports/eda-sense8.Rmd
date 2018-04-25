@@ -18,7 +18,9 @@ theme_set(theme_bw())
 
 Neste laboratório, serão analisados os episódios de três séries de TV: Friends, Desperate Housewives e House.
 
-## O primeiro passo desta análise é importar os dados a serem utilizados e filtrar as séries de interesse.
+### Importando os dados
+
+O primeiro passo desta análise é importar os dados a serem utilizados e filtrar as séries de interesse.
 
 ```{r}
 episodes = read_csv(here("data/series_from_imdb.csv"), 
@@ -31,78 +33,75 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
     filter(series_name %in% c("Friends", "Desperate Housewives", "House"))
 ```
 
-## O próximo passo é responder às seguintes perguntas:
+### Respondendo às perguntas:
 
  * a. Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
  * b. Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena?
 
-###  Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
+####  1. Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
 
-  O critério para escolha da série mais bem avaliada foi escolhido de acordo com o número de usuários que deram nota máxima em cada episódio.
+  O critério para escolha da série mais bem avaliada foi escolhido de acordo com o valor da mediana, uma medida que significa que a metade das avaliações dos usuários estão abaixo dessa nota e a outra metade está acima.
   
 ```{r}
-episodes %>% group_by(series_name) %>%  mutate(r10_votes = r10 * user_votes) %>% arrange(-r10_votes) %>%
-  ggplot(aes(x = series_name, y = r10_votes, fill = "red")) +
-  geom_bar(stat="identity") +
-  theme(legend.position = 'None') + 
-  labs(x = "Séries", y = "Número de avaliações com nota máxima no IMDB")
-  
+episodes %>% group_by(series_name, season) %>% 
+  summarise(median_by_serie = median(user_rating)) %>%
+  ggplot(aes(x = season, y = median_by_serie, color = series_name, group=series_name)) +
+  geom_line(stat='identity') +
+  geom_point() +
+  labs(x = "Temporadas", y = "Mediana das avaliações")  +
+  guides(color=guide_legend("Série"))
 ```
+  
+  No gráfico é possível visualizar a relação entre as temporadas das séries e as medianas das avaliações dos usuários no decorrer das temporadas. A série que obteve maior mediana foi a série House, sendo então a mais bem avaliada de acordo com o critério escolhido. Este seriado liderou as demais principalmente durante as 4 primeiras temporadas, onde obteve avaliação crescente e maior pico (4ª temporada, com valor aproximado de 8.7). A partir da 6ª temporada, a mediana das avaliações foi diminuindo consideravelmente, chegando a seu valor mínimo em sua última temporada, com mediana igual a aproximadamente 8.2, sendo este a maior mediana das avaliações do seriado Desperate Housewives, ocupando o terceiro lugar no ranking de votações.
+  Se pode observar que a série Friends foi uma boa concorrente e se manteve com nota bem próxima à série House, chegando a liderar nas avaliações nas três últimas temporadas: 8, 9 e 10.
+  
+####  2. Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena? 
 
-## Quantas avaliações temos por episódio? 
-
-Cada episódio foi avaliado por um número diferente de usuários do IMDB. Vejamos como é essa distribuição. 
+```{r}
+episodes %>%
+  ggplot(aes(x = series_ep, y = user_rating, color = series_name))  + 
+  geom_line() + 
+  facet_wrap(~ series_name) +
+  labs(x = "Episódios", y = "Avaliação dos usuários")  +
+  theme(legend.position = 'None')
+```
 
 ```{r}
 episodes %>% filter(series_name == 'Friends') %>%
-    ggplot(aes(x = season, y = user_votes)) +
-    geom_violin() + 
-    geom_jitter(width = .07) 
-```
+  ggplot(aes(x = season_ep, y = user_rating)) +
+  geom_line() + 
+  labs(x = "Episódios", y = "Avaliação", title = "Friends") +
+  facet_wrap(~ season)
 
+episodes %>% filter(series_name == 'House') %>%
+  ggplot(aes(x = season_ep, y = user_rating)) +
+  geom_line() + 
+  labs(x = "Episódios", y = "Avaliação", title = "House") +
+  facet_wrap(~ season)
 
-```{r}
-episodes %>% 
-    ggplot(aes(x = season_ep, y = user_votes))  + 
-    geom_line() + 
-    facet_wrap(~ season)
+episodes %>% filter(series_name == 'Desperate Housewives') %>%
+  ggplot(aes(x = season_ep, y = user_rating)) +
+  geom_line() + 
+  labs(x = "Episódios", y = "Avaliação", title = "Desperate Housewives") +
+  facet_wrap(~ season)
                
 ```
 
-A quantidade de avaliações varia bastante. Exceto pelo primeiro episódio, os episódios da segunda temporada tem muito menos avaliações. Talvez porque os dados foram coletados logo depois que a segunda temporada foi lançada. 
-
-## Qual a distribuição da avaliação por série?
+  O gráfico acima exibe a relação entre o episódio e a avaliação dada pelo usuários em cada uma das três séries. Como a interpretação da variação é difícil no gráfico, optou-se por calcular o coeficiente de variação das avaliações (cv_avaliacao) para cada série:
 
 ```{r}
-episodes %>% 
-  group_by(series_name) %>%
-    ggplot(aes(x = series_name, y = user_rating)) + 
-    geom_jitter(width = .05) +
-    ylim(5, 10) + 
-    labs(x = "Séries", y = "Avaliação no IMDB")
+episodes %>% group_by(series_name) %>%
+  summarise(media_avaliacao = mean(user_rating, na.rm = T), 
+            desv_avaliacao = sd(user_rating, na.rm = T), 
+            cv_avaliacao = (desv_avaliacao/media_avaliacao) * 100) %>% 
+  ggplot(aes(x = series_name, y = cv_avaliacao))  + 
+  geom_point(stat = "identity") +
+  labs(x = "Séries", y = "Coeficiente de Variação")
 ```
 
-```{r}
-episodes %>% 
-    ggplot(aes(x = user_rating)) + 
-    geom_histogram(binwidth = .5, fill = "pink", color = "black") + 
-    geom_rug(alpha = .5, size = 1.2)
+  O Coeficiente de Variação serve para medir a dispersão das avaliações no decorrer dos episódios de cada série. Quando esse valor ultrapassa 30%, dizemos que os dados possuem alta dispersão; entre 15% e 30%, dizemos que os dados estão com média dispersão; abaixo disso, os dados estão com baixa dispersão. Todas as séries possuem baixa dispersão, pois os coeficientes de variação estão entre 3.8% e 4.5%. A série que apresenta maior dispersão entre as avaliações dos episódios é House, seguido de Friends e Desperate Housewives.
 
-```
-
-```{r}
-sumarios = episodes %>% 
-    summarise(mediana = median(user_rating), 
-              media = mean(user_rating))
-
-episodes %>% 
-    ggplot(aes(x = user_rating)) + 
-    geom_histogram(binwidth = .5, fill = "white", color = "black") + 
-    geom_vline(xintercept = sumarios$media, color = "darkorange") + 
-    geom_vline(xintercept = sumarios$mediana, color = "brown") 
-```
-
-### Qual é esse episódio pior avaliado? 
+#### Bônus 1: Qual das séries ou temporadas tem episódios mais sem graça? (Um episódio é sem graça se ninguém nem ama nem odeia ele) 
 
 ```{r}
 episodes %>% 
