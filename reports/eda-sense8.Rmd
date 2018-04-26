@@ -40,20 +40,22 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
 
 ####  1. Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
 
-  O critério para escolha da série mais bem avaliada foi escolhido de acordo com o valor da mediana, uma medida que significa que a metade das avaliações dos usuários estão abaixo dessa nota e a outra metade está acima.
+  O critério para escolha da série mais bem avaliada foi escolhido de acordo com a média do valor da proporção de usuários que votaram nota máxima em cada episódio.
   
 ```{r}
 episodes %>% group_by(series_name, season) %>% 
-  summarise(median_by_serie = median(user_rating)) %>%
-  ggplot(aes(x = season, y = median_by_serie, color = series_name, group=series_name)) +
+  summarise(median_by_serie = median(r10)) %>%
+  ggplot(aes(x = season, y = median_by_serie *100, color = series_name, group=series_name)) +
   geom_line(stat='identity') +
   geom_point() +
-  labs(x = "Temporadas", y = "Mediana das avaliações")  +
+  labs(x = "Temporadas", y = "Média de proporção de notas máximas (%)")  +
   guides(color=guide_legend("Série"))
 ```
   
-  No gráfico é possível visualizar a relação entre as temporadas das séries e as medianas das avaliações dos usuários no decorrer das temporadas. A série que obteve maior mediana foi a série House, sendo então a mais bem avaliada de acordo com o critério escolhido. Este seriado liderou as demais principalmente durante as 4 primeiras temporadas, onde obteve avaliação crescente e maior pico (4ª temporada, com valor aproximado de 8.7). A partir da 6ª temporada, a mediana das avaliações foi diminuindo consideravelmente, chegando a seu valor mínimo em sua última temporada, com mediana igual a aproximadamente 8.2, sendo este a maior mediana das avaliações do seriado Desperate Housewives, ocupando o terceiro lugar no ranking de votações.
-  Se pode observar que a série Friends foi uma boa concorrente e se manteve com nota bem próxima à série House, chegando a liderar nas avaliações nas três últimas temporadas: 8, 9 e 10.
+  No gráfico é possível visualizar a relação entre as temporadas das séries e a média do valor da proporção de usuários que votaram nota máxima em cada episódio no decorrer das temporadas. 
+  A série mais bem votada é **Friends**, possuindo mais notas máximas dentre as demais avaliações por episódio. Este seriado liderou as demais principalmente durante as temporadas 1 e 3, possuindo quase 35% das notas com valor máximo. Nota-se que, a partir da 3ª temporada, essa proporção diminuiu drasticamente, chegando a seu mínimo na 5ª temporada, com valor igual a 28%. Uma possível razão para essa queda seria o término do casal Rachel e Ross e o novo namoro de Ross com Emily.
+  **House** ocupou a segunda posição do ranking, com avaliação crescete ao longo das temporadas e dominando as melhores avaliações durante 4 temporadas: 4ª, 5ª, 6ª a 7ª. Acredito que a queda na 8ª temporada se deva pelas **alerta de spoiler** mortes de personagens importantes da série.
+  **Desperate Housewives** ficou em último lugar, possuindo avaliação crescente com exceção principalmente da 6ª temporada, que teve o valor mínimo entre todas as temporadas de todas as séries. Acredito que esta queda ocorreu devido ao mistério envolvendo o estrangulador de Fairview, além da catástrofe envolvendo a queda de um avião dentro do condomínio onde as principais personagens residem.
   
 ####  2. Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena? 
 
@@ -67,32 +69,22 @@ episodes %>%
 ```
 
 ```{r}
-episodes %>% filter(series_name == 'Friends') %>%
-  ggplot(aes(x = season_ep, y = user_rating)) +
-  geom_line() + 
-  labs(x = "Episódios", y = "Avaliação", title = "Friends") +
-  facet_wrap(~ season)
-
-episodes %>% filter(series_name == 'House') %>%
-  ggplot(aes(x = season_ep, y = user_rating)) +
-  geom_line() + 
-  labs(x = "Episódios", y = "Avaliação", title = "House") +
-  facet_wrap(~ season)
-
-episodes %>% filter(series_name == 'Desperate Housewives') %>%
-  ggplot(aes(x = season_ep, y = user_rating)) +
-  geom_line() + 
-  labs(x = "Episódios", y = "Avaliação", title = "Desperate Housewives") +
-  facet_wrap(~ season)
+episodes %>% group_by(series_name) %>%
+  ggplot(aes(x = season_ep, y = user_rating, color = series_name)) +
+  geom_jitter(width = .1, size = .5, alpha = .5) +
+  geom_line() +
+  labs(x = "Episódios", y = "Avaliação") +
+  facet_wrap(~ season) +
+  guides(color=guide_legend("Série"))
                
 ```
 
-  O gráfico acima exibe a relação entre o episódio e a avaliação dada pelo usuários em cada uma das três séries. Como a interpretação da variação é difícil no gráfico, optou-se por calcular o coeficiente de variação das avaliações (cv_avaliacao) para cada série:
+  Os gráficos acima exibem a relação entre o episódio e a avaliação dada pelo usuários por temporada em cada uma das três séries. Como a interpretação da variação é difícil no gráfico, optou-se por calcular o coeficiente de variação das avaliações (cv_avaliacao) para cada série:
 
 ```{r}
 episodes %>% group_by(series_name) %>%
-  summarise(media_avaliacao = mean(user_rating, na.rm = T), 
-            desv_avaliacao = sd(user_rating, na.rm = T), 
+  summarise(media_avaliacao = mean(user_rating), 
+            desv_avaliacao = sd(user_rating), 
             cv_avaliacao = (desv_avaliacao/media_avaliacao) * 100) %>% 
   ggplot(aes(x = series_name, y = cv_avaliacao))  + 
   geom_point(stat = "identity") +
@@ -104,8 +96,14 @@ episodes %>% group_by(series_name) %>%
 #### Bônus 1: Qual das séries ou temporadas tem episódios mais sem graça? (Um episódio é sem graça se ninguém nem ama nem odeia ele) 
 
 ```{r}
-episodes %>% 
-    filter(user_rating == min(user_rating))
+episodes =  episodes %>%
+    mutate(
+        rank_odiados = row_number(r1), # maior = mais odiado
+        rank_amados = row_number(r10), # maior = mais amado
+        amado_odiado = rank_amados * rank_odiados) # maior = mais amado E odiado
+
+episodes %>% arrange(-amado_odiado) %>%
+  ggplot()
 ```
 
 
