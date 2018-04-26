@@ -1,5 +1,5 @@
 ---
-title: "Dados sobre séries de TV"
+title: "Análise sobre avaliações de séries de TV pelo IMDb"
 output:
   html_notebook:
     toc: yes
@@ -15,10 +15,11 @@ library(tidyverse)
 library(here)
 theme_set(theme_bw())
 ```
+## Introdução
 
-Neste relatório, serão analisados os episódios de três séries de TV: Friends, Desperate Housewives e House.
+Neste relatório, serão analisados as avaliações dos episódios e das temporadas de três séries de TV: Friends, Desperate Housewives e House. As perguntas as serem respondidas incluem qual das séries é mais bem avaliada, qual possui episódios de qualidade mais irregular, qual das séries ou temporadas tem episódios mais sem graça e o que tende a ser melhor: inícios ou finais de séries/temporadas.
 
-### Importando os dados
+#### Importando os dados
 
 O primeiro passo desta análise é importar os dados a serem utilizados e filtrar as séries de interesse.
 
@@ -33,12 +34,9 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
     filter(series_name %in% c("Friends", "Desperate Housewives", "House"))
 ```
 
-### Respondendo às perguntas:
+## Perguntas
 
- * a. Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
- * b. Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena?
-
-#### Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
+### Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
 
   O critério para escolha da série mais bem avaliada foi escolhido de acordo com a média do valor da proporção de usuários que votaram nota máxima em cada episódio.
   
@@ -57,7 +55,7 @@ episodes %>% group_by(series_name, season) %>%
   **House** ocupou a segunda posição do ranking, com avaliação crescete ao longo das temporadas e dominando as melhores avaliações durante 4 temporadas: 4ª, 5ª, 6ª a 7ª. Acredito que a queda na 8ª temporada se deva pelas **alerta de spoiler** mortes de personagens importantes da série.
   **Desperate Housewives** ficou em último lugar, possuindo avaliação crescente com exceção principalmente da 6ª temporada, que teve o valor mínimo entre todas as temporadas de todas as séries. Acredito que esta queda ocorreu devido ao mistério envolvendo o estrangulador de Fairview, além da catástrofe envolvendo a queda de um avião dentro do condomínio onde as principais personagens residem.
   
-####  Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena? 
+###  Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena? 
 
 ```{r}
 episodes %>% group_by(series_name) %>%
@@ -67,7 +65,6 @@ episodes %>% group_by(series_name) %>%
   labs(x = "Episódios", y = "Avaliação") +
   facet_wrap(~ season) +
   guides(color=guide_legend("Série"))
-               
 ```
 
 ```{r}
@@ -81,39 +78,41 @@ episodes %>%
   Os gráficos acima exibem a relação entre o episódio e a avaliação dada pelo usuários por temporada (primeiro gráfico) e no geral (segundo gráfico) em cada uma das três séries. 
   A série que possui maior variação de avaliação dos usuários é **House**, seguindo de **Friends** e **Desperate Housewives**. A diferença entre os episódios de House variam de 7.6 a 9.4, com a maior parte das avaliações entre  8.0 e 9.2. A avaliação dos episódios de Friends variam entre 7.5 e 9.5, possuindo maior concentração das notas entre 8.0 e 9.0. Desperate Housewives possui maior concentração de avaliações entre 7.7 e 8.2, possuindo episódios com notas mais regulares entre as três.
 
-#### Qual das séries ou temporadas tem episódios mais sem graça? (Um episódio é sem graça se ninguém nem ama nem odeia ele) 
+### Qual das séries ou temporadas tem episódios mais sem graça? (Um episódio é sem graça se ninguém nem ama nem odeia ele) 
+
+  Os episódios foram considerados sem graça de acordo com a proporção de votos iguais a 5 (considerados neutros) em relação ao número total de votos. 
 
 ```{r}
 episodes =  episodes %>%
     mutate(
         rank_odiados = row_number(r1), # maior = mais odiado
         rank_amados = row_number(r10), # maior = mais amado
+        rank_sem_graca = row_number(r5), # maior = mais sem graca,
         amado_odiado = rank_amados * rank_odiados) # maior = mais amado E odiado
 
-episodes %>% arrange(-amado_odiado) %>% group_by(season) %>%
-  ggplot(aes(x = season, y = amado_odiado, fill = series_name)) +
-  geom_bar(stat="identity")
-```
-
-
-## Distribuição de avaliações por seriado.
-
-```{r}
-episodes %>% 
-  group_by(series_name) %>%
-    ggplot(aes(x = series_name, y = user_rating)) + 
-    geom_boxplot(width = .5, outlier.color = NA) +   
-    geom_jitter(width = .1, size = 2, alpha = .5, color = "red") +
-  labs(x = "Séries", y = "Avaliação no IMDB")
+episodes %>% group_by(series_name) %>%
+    ggplot(aes(
+        x = r5,
+        y = season,
+        color = series_name,
+        label = season_ep,
+        size = rank_sem_graca
+    )) +
+    geom_point(alpha = .5) +
+    geom_text(nudge_x = .001, nudge_y = -.01) +
+  labs(y = "Temporadas", x = "Proporção de votos neutros") +
+  guides(color=guide_legend("Série"), size = guide_legend("Nível de chatice"))
 ```
   
-  Como se pode perceber nos boxplots acima, o seriado Desperate Housewives possui a maior parte de suas avaliações entre 7.5 e 8.2. Também é possível notar que poucos episódios estão acima de nota 9.0. A série de comédia Friends possui a maior parte de suas avaliações entre 8.0 e 9.0, contendo mais episódios acima de 9.0 que as demais séries. House possui mediana próxima a 8.6, o que significa que metade de suas avaliações estão abaixo dessa nota e metade está acima. Pode-se notar também que suas avaliações se concentram entre 8.0 e 9.5.
-
-
-### Há padrões na avaliação ao longo do tempo?
+  **Friends** é a série que possui mais episódios sem graça, seguido por House e Desperate Housewives. Dentre as temporadas da série, as que possuem episódios mais sem graça são as temporadas 4 e 10. O episódio mais chato de todos os tempos de acordo com os votos dos usuários é **S8E16 - The One Where Joey Tells Rachel**, onde Joey conta para Rachel que está apaixonado por ela, provavelmente porque poucas pessoas torcem pelo casal, já que o casal mais querido pelos fãs da série normalmente é Rachel e Ross. O segundo episódio mais chato da série é **S4E22 - The One with the Worst Best Man Ever**, onde os três personagens masculinos discutem sobre quem será o padrinho de casamento dos outros e Joey acaba perdendo o anel de casamento. Esse episódio ser considerado o segundo mais chato me surpreendeu pois nele também ocorre o chá de bebê da Phoebe (que considero a personagem mais engraçada do seriado) e tem cenas bem engraçadas. O terceiro episódio mais chato é também da série Friends, o **S10E12 - The One With Phoebe's Wedding**, onde Phoebe se casa, apesar de tudo dar errado o episódio quase todo, motivo que pode ter causado essa posição de chatice do episódio. 
+  
+  
+  
+### Episódios no início/fim da temporada são mais bem avaliados que os no meio? O que tende a ser melhor? Inícios ou finais de séries/temporadas?
+#### Friends
 
 ```{r}
-episodes %>% 
+episodes %>% filter (series_name == 'Friends') %>%
   ggplot(aes(x = season_ep, y = user_rating, color = season)) + 
   geom_line() + 
   geom_point() 
@@ -122,13 +121,18 @@ episodes %>%
 Correlações
 
 ```{r}
-episodes %>% 
+friends <- episodes %>% filter (series_name == 'Friends') %>%
     group_by(season) %>% 
-    summarise(correlacao_linear = cor(season_ep, user_rating, 
+    summarise(correlacao_linear_ep = cor(season_ep, user_rating, 
                                       method = "pearson"), 
-              correlacao_kendall = cor(season_ep, user_rating, 
-                                       method = "kendall"))
-
+              correlacao_kendall_ep = cor(season_ep, user_rating, 
+                                       method = "kendall"),
+              correlacao_kendall_season = cor(season_ep, user_rating, 
+                                       method = "kendall"),
+              ) 
+friends %>% summarise(correlacao_inicio_fim = cor(season, user_rating))
+  ggplot(aes(x = season, y = correlacao_kendall)) +
+  geom_point()
 ```
 
 ## Qual o episódio mais detestado? 
