@@ -16,7 +16,7 @@ library(here)
 theme_set(theme_bw())
 ```
 
-Neste laboratório, serão analisados os episódios de três séries de TV: Friends, Desperate Housewives e House.
+Neste relatório, serão analisados os episódios de três séries de TV: Friends, Desperate Housewives e House.
 
 ### Importando os dados
 
@@ -38,7 +38,7 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
  * a. Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
  * b. Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena?
 
-####  1. Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
+#### Qual das séries é mais bem avaliada no IMDB? A diferença é grande? Pequena? Muda de acordo com as temporadas da série? 
 
   O critério para escolha da série mais bem avaliada foi escolhido de acordo com a média do valor da proporção de usuários que votaram nota máxima em cada episódio.
   
@@ -57,7 +57,7 @@ episodes %>% group_by(series_name, season) %>%
   **House** ocupou a segunda posição do ranking, com avaliação crescete ao longo das temporadas e dominando as melhores avaliações durante 4 temporadas: 4ª, 5ª, 6ª a 7ª. Acredito que a queda na 8ª temporada se deva pelas **alerta de spoiler** mortes de personagens importantes da série.
   **Desperate Housewives** ficou em último lugar, possuindo avaliação crescente com exceção principalmente da 6ª temporada, que teve o valor mínimo entre todas as temporadas de todas as séries. Acredito que esta queda ocorreu devido ao mistério envolvendo o estrangulador de Fairview, além da catástrofe envolvendo a queda de um avião dentro do condomínio onde as principais personagens residem.
   
-####  2. Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena? 
+####  Qual das séries tem episódios de qualidade mais irregular segundo o IMDB? A diferença é grande? Pequena? 
 
 ```{r}
 episodes %>%
@@ -79,19 +79,26 @@ episodes %>% group_by(series_name) %>%
                
 ```
 
-  Os gráficos acima exibem a relação entre o episódio e a avaliação dada pelo usuários por temporada em cada uma das três séries. Como a interpretação da variação é difícil no gráfico, optou-se por calcular o coeficiente de variação das avaliações (cv_avaliacao) para cada série:
-
+```{r}
+episodes %>% 
+  group_by(series_name) %>%
+    ggplot(aes(x = series_name, y = user_rating)) + 
+    geom_boxplot(width = .5, outlier.color = NA) +   
+    geom_jitter(width = .1, size = 2, alpha = .5, color = "purple") +
+  labs(x = "Séries", y = "Avaliação no IMDB")
+```
+  Os gráficos acima exibem a relação entre o episódio e a avaliação dada pelo usuários por temporada (primeiro gráfico) e no geral (segundo gráfico) em cada uma das três séries. 
+  A série que possui maior variação de avaliação dos usuários é **House**, seguindo de **Friends** e **Desperate Housewives**. A diferença entre os episódios de House variam de 7.6 a 9.4, com a maior parte das avaliações entre  8.0 e 9.2. A avaliação dos episódios de Friends variam entre 7.5 e 9.5, possuindo maior concentração das notas entre 8.0 e 9.0. Desperate Housewives possui maior concentração de avaliações entre 7.7 e 8.2, possuindo episódios com notas mais regulares entre as três.
+  
 ```{r}
 episodes %>% group_by(series_name) %>%
   summarise(media_avaliacao = mean(user_rating), 
             desv_avaliacao = sd(user_rating), 
-            cv_avaliacao = (desv_avaliacao/media_avaliacao) * 100) %>% 
-  ggplot(aes(x = series_name, y = cv_avaliacao))  + 
-  geom_point(stat = "identity") +
-  labs(x = "Séries", y = "Coeficiente de Variação")
+            cv_avaliacao = (desv_avaliacao/media_avaliacao) * 100)
 ```
 
-  O Coeficiente de Variação serve para medir a dispersão das avaliações no decorrer dos episódios de cada série. Quando esse valor ultrapassa 30%, dizemos que os dados possuem alta dispersão; entre 15% e 30%, dizemos que os dados estão com média dispersão; abaixo disso, os dados estão com baixa dispersão. Todas as séries possuem baixa dispersão, pois os coeficientes de variação estão entre 3.8% e 4.5%. A série que apresenta maior dispersão entre as avaliações dos episódios é House, seguido de Friends e Desperate Housewives.
+  O Coeficiente de Variação serve para medir a dispersão das avaliações no decorrer dos episódios de cada série. Quando esse valor ultrapassa 30%, dizemos que os dados possuem alta dispersão; entre 15% e 30%, dizemos que os dados estão com média dispersão; abaixo disso, os dados estão com baixa dispersão. 
+  Todas as séries possuem baixa dispersão, pois os coeficientes de variação estão entre 3.8% e 4.5%. A série que apresenta maior dispersão entre as avaliações dos episódios é **House**, seguido de Friends e Desperate Housewives.
 
 #### Bônus 1: Qual das séries ou temporadas tem episódios mais sem graça? (Um episódio é sem graça se ninguém nem ama nem odeia ele) 
 
