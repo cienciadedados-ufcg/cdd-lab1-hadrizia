@@ -1,0 +1,51 @@
+---
+title: "Análise sobre avaliações de séries de TV pelo IMDb"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(here)
+theme_set(theme_bw())
+```
+
+#### Importando os dados
+
+O primeiro passo desta análise é importar os dados a serem utilizados e filtrar as séries de interesse.
+
+```{r}
+episodes = read_csv(here("data/series_from_imdb.csv"), 
+                    progress = FALSE,
+                    col_types = cols(.default = col_double(), 
+                                     series_name = col_character(), 
+                                     episode = col_character(), 
+                                     url = col_character(),
+                                     season = col_character()))
+```
+
+## Perguntas
+
+###  Os episódios que recebem mais votação são episódios mais amados ou mais odiados ?
+```{r}
+episodes %>% arrange(-user_votes) %>% 
+  ggplot(aes(x = r10, y = user_votes)) +
+  geom_point(alpha = 0.5)
+```
+  Para responder a esta pergunta, foram recuperados os 100 episódios que receberam mais votações e a proporção de usuários que deram nota máxima ao episódio. Olhando o gráfico, percebe-se que não há uma relação muito forte entre o número de votos e a proporção de nota máxima. 
+```{r}
+cor(episodes$user_votes, episodes$r10)
+```
+
+### Qual episódio gerou menos consenso sobre sua qualidade?
+
+```{r}
+
+```
+
