@@ -30,22 +30,54 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
                                      season = col_character()))
 ```
 
+## Apresentando uma visão geral das variáveis que são usadas na análise
+
+```{r}
+episodes %>% head(300) %>% ggplot(aes(x = series_name, y = user_votes)) +
+  geom_boxplot()
+```
+
+
 ## Perguntas
 
-###  Os episódios que recebem mais votação são episódios mais amados ou mais odiados ?
+###  Os episódios que recebem mais votação são episódios mais amados ou mais odiados?
+
 ```{r}
 episodes %>% arrange(-user_votes) %>% 
   ggplot(aes(x = r10, y = user_votes)) +
-  geom_point(alpha = 0.5)
+  geom_point(alpha = 0.6, color = 'darkcyan') +
+  labs(x = 'Proporção de notas máximas por episódio', y = 'Número de votações por episódio')
 ```
-  Para responder a esta pergunta, foram recuperados os 100 episódios que receberam mais votações e a proporção de usuários que deram nota máxima ao episódio. Olhando o gráfico, percebe-se que não há uma relação muito forte entre o número de votos e a proporção de nota máxima. 
+  
+  O gráfico acima ilustra a relação entre o número de votações dos episódios e a proporção de usuários que deram nota máxima. Olhando para o gráfico, percebe-se que não há uma relação muito relevante entre o número de votos e a proporção de nota máxima, pois tirando os pontos extremos, a distribuição da proporção em relação ao número de votos encontra-se quase constante, independendo do número de votos. 
+  
+  Outra forma de visualizar se há relação ou não é calcular o coeficiente de correlação entre essas duas variáveis. Com coeficiente de correlação igual a 0.21, assume-se que há correlação fraca entre o número de votos e a proporção de episódios mais amados.
+  
 ```{r}
 cor(episodes$user_votes, episodes$r10)
 ```
 
+  A seguir, fazemos o mesmo para a proporção de notas mais baixas a fim de saber se os episódios mais votados são mais odiados.
+  
+```{r}
+episodes %>% arrange(-user_votes) %>% 
+  ggplot(aes(x = r1, y = user_votes)) +
+  geom_point(alpha = 0.6, color = 'darkslateblue') +
+  labs(x = 'Proporção de notas máximas por episódio', y = 'Número de votações por episódio')
+```
+  
+  Observando o gráfico acima, nota-se que os episódios mais votados se concentram no início do eixo x, onde há menor proporção de notas com valor mínimo. Isto significa que normalmente os episódios mais votados são menos odiados. 
+  
+  Abaixo tem-se calculado o coeficiente de correlação entre o número de votos e a proporção de notas mínimas por episódio. Com valor igual a aproximadamente -0.011, assume-se que há uma correlação negativa bem fraca, indicando que a proporção de votos com nota mínima é fracamente e inversamente proporcional ao número de votos.  
+  
+```{r}
+cor(episodes$user_votes, episodes$r1)
+```
+
+  Um questionamento que esta reposta pode levar seria **se o número de votação por episódio (a popularidade) está associado à longevidade das séries**.
+  
 ### Qual episódio gerou menos consenso sobre sua qualidade?
 
 ```{r}
 
 ```
-
