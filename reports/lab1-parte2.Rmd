@@ -32,6 +32,8 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
 
 ## Apresentando uma visão geral das variáveis que são usadas na análise
 
+**Número de votos por episódio**
+
 ```{r}
 summary(episodes$user_votes)
 ```
@@ -44,6 +46,21 @@ episodes %>% ggplot(aes(user_votes)) +
 ```
     
   Percebemos que o número de votos está distribuído em sua maioria entre 5 (menor número) a 2000, com maior concentração entre 5 e aproximadamente 250 votos, indicando que os dados se concentram mais nesse intervalo.
+  
+**Avaliações dos episódios**
+  
+```{r}
+summary(episodes$user_rating)
+```
+  
+  Os dados de avaliação dos episódios estão distribuídos da seguinte forma: valor mínimo igual a 3, valor máximo igual a 9.9 e mediana igual a 8. Observaremos a seguir a distribuição dessa variável:
+  
+```{r}
+episodes %>% ggplot(aes(user_rating)) +
+  geom_freqpoly(binwidth = 1, color = 'darkcyan') + xlim(0, 10) + labs(x = 'Nota', y = 'Frequência')
+```
+  
+  Pelo gráfico, observamos que a maior parte dos votos está entre 7.5 e aproximadamente 8.7. Acredito que não muita dispersão nos dados.
   
 ## Perguntas
 
@@ -101,7 +118,7 @@ series_longas_votos %>%
     labs (x = 'Tipo', y = 'Soma total de votos') + scale_y_continuous(labels = scales::comma)
 ```
   
-  Os boxplots acima indicam que as três séries com maior número total de votos são curtas, ou seja, possuem mais de 100 episódios (a nível de curiosidade, veremos quais são a seguir). Percebemos também que, em geral, as séries que recebem mais votos são as mais longas.
+  Os boxplots acima indicam que as três séries com maior número total de votos são curtas, ou seja, possuem menos de 100 episódios (a nível de curiosidade, veremos quais são a seguir). Percebemos também que, em geral, as séries que recebem mais votos são sim as mais longas.
   
   As séries curtas mais populares são:
   
@@ -109,10 +126,38 @@ series_longas_votos %>%
 series_longas_votos %>% arrange(-soma_votos) %>% head(3)
 ```
   
-  Nessa tabela fica clara a popoularidade de Game of Thrones, conquistando mais de 1 milhão e 300 mil votos ao todo. The Walking Dead está quase classificada como série longa, pois possui 99 episódios, e ocupa o segundo lugar com mais de 800 mil votos. Em terceiro está Breaking Bad, com 776 mil votos.
+  Nessa tabela fica clara a popoularidade de Game of Thrones, conquistando mais de 1 milhão e 300 mil votos ao todo com 60 episódios. The Walking Dead está quase classificada como série longa, pois possui 99 episódios, e ocupa o segundo lugar com mais de 800 mil votos. Em terceiro está Breaking Bad, com 776 mil votos e 62 episódios.
   
-### Qual episódio gerou menos consenso sobre sua qualidade?
+### Qual o gênero de série mais bem avaliado?
+
+  Precisamos criar essa variável nos dados. Como são muitas séries, optou-se por escolher as 10 séries mais bem avaliadas e adicionar o gênero somente a elas.
+  
+```{r}
+top_10_series = episodes %>% group_by(series_name) %>% summarise(mean_rating = mean(user_rating)) %>% arrange(-mean_rating) %>% head(10)
+
+# Adicionando coluna gender com o gênero predominante da série
+
+top_10_series$gender = c("Action", "Drama", "Action", "Crime", "Action", "Action", "Drama", "Crime", "Drama", "Crime")
+
+top_10_series %>% ggplot(aes(x = gender)) +
+    geom_histogram(stat = 'count', fill = 'turquoise3') + 
+    labs(x = 'Gênero', y = 'Frequência')
+```
+
+  Não se tem uma diferença grande entre os gêneros mais bem votados, seguida de Crime e Drama. Acredito que normalmente os três gêneros andam juntos em muitas das séries selecionadas para responder a esta pergunta.
+  
+  Outra coisa que se pode investigar é quais são os gêneros das séries com nota menor do IMDb, e será respondido a seguir.
 
 ```{r}
+top_minus_10_series = episodes %>% group_by(series_name) %>% summarise(mean_rating = mean(user_rating)) %>% arrange(mean_rating) %>% head(10)
 
+# Adicionando coluna gender com o gênero predominante da série
+
+top_minus_10_series$gender = c("Game-Show", "Action", "Action", "Comedy", "Drama", "Comedy", "Comedy", "Comedy", "Action", "Horror")
+
+top_minus_10_series %>% ggplot(aes(x = gender)) +
+    geom_histogram(stat = 'count', fill = 'turquoise3') + 
+    labs(x = 'Gênero', y = 'Frequência')
 ```
+
+  O gênero das séries com notas mais baixas é Comédia, seguido de Ação, Drama, Game-Show e Horror. Achei interessante o gênero Ação estar tanto nas séries mais bem avaliadas quanto nas que possuem nota mais baixas, o que pode significar que o gênero não tem muita relação com o sucesso e a popularidade da série.
