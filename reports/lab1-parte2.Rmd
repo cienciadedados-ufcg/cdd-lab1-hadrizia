@@ -33,48 +33,83 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
 ## Apresentando uma visão geral das variáveis que são usadas na análise
 
 ```{r}
-episodes %>% head(300) %>% ggplot(aes(x = series_name, y = user_votes)) +
-  geom_boxplot()
+summary(episodes$user_votes)
 ```
 
-
+  Um resumo sobre o número de votos por episódio está descrito acima: Com valor mínimo igual a 5 votos, valor máximo igual a 138.3533 e mediana igual a 211 (significando que 50% do número de votos está abaixo de 211 e 50% está acima desse valor). Acredito que esses dados estão relativamente dispersos, uma vez que 75% deles estão abaixo ou igual a 636 e o restante provavelmente está bastante disperso e/ou possui outliers com valores bastante elevados. 
+    
+```{r}
+episodes %>% ggplot(aes(user_votes)) +
+  geom_freqpoly(binwidth = 30, color = 'darkcyan') + xlim(0, 5000) + labs(x = 'Número de votos', y = 'Frequência')
+```
+    
+  Percebemos que o número de votos está distribuído em sua maioria entre 5 (menor número) a 2000, com maior concentração entre 5 e aproximadamente 250 votos, indicando que os dados se concentram mais nesse intervalo.
+  
 ## Perguntas
 
 ###  Os episódios que recebem mais votação são episódios mais amados ou mais odiados?
 
 ```{r}
-episodes %>% arrange(-user_votes) %>% 
+top_100_votes = episodes %>% arrange(-user_votes) %>% top_n(100)
+
+top_100_votes %>%
   ggplot(aes(x = r10, y = user_votes)) +
   geom_point(alpha = 0.6, color = 'darkcyan') +
   labs(x = 'Proporção de notas máximas por episódio', y = 'Número de votações por episódio')
 ```
   
-  O gráfico acima ilustra a relação entre o número de votações dos episódios e a proporção de usuários que deram nota máxima. Olhando para o gráfico, percebe-se que não há uma relação muito relevante entre o número de votos e a proporção de nota máxima, pois tirando os pontos extremos, a distribuição da proporção em relação ao número de votos encontra-se quase constante, independendo do número de votos. 
+  O gráfico acima ilustra a relação entre o número de votações dos 100 episódios mais bem votados e a proporção de usuários que deram nota máxima. Olhando para o gráfico, percebe-se que não há uma relação muito relevante entre o número de votos e a proporção de nota máxima, pois tirando os pontos extremos, a distribuição da proporção em relação ao número de votos encontra-se quase constante, independendo do número de votos. 
   
-  Outra forma de visualizar se há relação ou não é calcular o coeficiente de correlação entre essas duas variáveis. Com coeficiente de correlação igual a 0.21, assume-se que há correlação fraca entre o número de votos e a proporção de episódios mais amados.
+  Outra forma de visualizar se há relação ou não é calcular o coeficiente de correlação entre essas duas variáveis. Com coeficiente de correlação próximo a 0.39, assume-se que há correlação fraca entre o número de votos e a proporção de episódios mais amados.
   
 ```{r}
-cor(episodes$user_votes, episodes$r10)
+cor(top_100_votes$user_votes, top_100_votes$r10)
 ```
 
   A seguir, fazemos o mesmo para a proporção de notas mais baixas a fim de saber se os episódios mais votados são mais odiados.
   
 ```{r}
-episodes %>% arrange(-user_votes) %>% 
+top_100_votes %>% 
   ggplot(aes(x = r1, y = user_votes)) +
   geom_point(alpha = 0.6, color = 'darkslateblue') +
   labs(x = 'Proporção de notas máximas por episódio', y = 'Número de votações por episódio')
 ```
   
-  Observando o gráfico acima, nota-se que os episódios mais votados se concentram no início do eixo x, onde há menor proporção de notas com valor mínimo. Isto significa que normalmente os episódios mais votados são menos odiados. 
+  Observando o gráfico acima, nota-se que os episódios mais votados se concentram onde há menor proporção de notas com valor mínimo. Isto significa que normalmente os episódios mais votados são menos odiados. 
   
-  Abaixo tem-se calculado o coeficiente de correlação entre o número de votos e a proporção de notas mínimas por episódio. Com valor igual a aproximadamente -0.011, assume-se que há uma correlação negativa bem fraca, indicando que a proporção de votos com nota mínima é fracamente e inversamente proporcional ao número de votos.  
+  Abaixo tem-se calculado o coeficiente de correlação entre o número de votos e a proporção de notas mínimas por episódio. Com valor igual a aproximadamente 0.03 assume-se que há uma correlação bem fraca, indicando que a proporção de votos com nota mínima é fracamente proporcional ao número de votos.  
   
 ```{r}
-cor(episodes$user_votes, episodes$r1)
+cor(top_100_votes$user_votes, top_100_votes$r1)
 ```
 
-  Um questionamento que esta reposta pode levar seria **se o número de votação por episódio (a popularidade) está associado à longevidade das séries**.
+  Um questionamento que esta reposta pode levar é **se o número de votação por episódio (a popularidade) está associado à longevidade das séries**.
+  
+### O número de votação por episódio (a popularidade) está associado à longevidade das séries?
+
+  Para responder à esta pergunta, considerei como séries longas as séries que possuem mais de 100 episódios em seu total. 
+
+```{r}
+series_longas_votos = episodes %>% group_by (series_name) %>% 
+    summarise(cont_total = n(), soma_votos = sum(user_votes)) %>%
+    mutate(tipo_serie = case_when(cont_total >= 100 ~ 'série longa',
+                                  cont_total < 100 ~ 'série curta')) 
+series_longas_votos %>% 
+    ggplot(aes(x = tipo_serie, y = soma_votos, color = tipo_serie)) +
+    geom_boxplot() + coord_flip() +
+    theme(legend.position = 'None') + 
+    labs (x = 'Tipo', y = 'Soma total de votos') + scale_y_continuous(labels = scales::comma)
+```
+  
+  Os boxplots acima indicam que as três séries com maior número total de votos são curtas, ou seja, possuem mais de 100 episódios (a nível de curiosidade, veremos quais são a seguir). Percebemos também que, em geral, as séries que recebem mais votos são as mais longas.
+  
+  As séries curtas mais populares são:
+  
+```{r}
+series_longas_votos %>% arrange(-soma_votos) %>% head(3)
+```
+  
+  Nessa tabela fica clara a popoularidade de Game of Thrones, conquistando mais de 1 milhão e 300 mil votos ao todo. The Walking Dead está quase classificada como série longa, pois possui 99 episódios, e ocupa o segundo lugar com mais de 800 mil votos. Em terceiro está Breaking Bad, com 776 mil votos.
   
 ### Qual episódio gerou menos consenso sobre sua qualidade?
 
