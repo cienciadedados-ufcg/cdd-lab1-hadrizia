@@ -1,0 +1,44 @@
+---
+title: "Análise sobre avaliações de séries de TV pelo IMDb"
+author: "Hadrizia Santos"
+date: "21 de maio de 2018"
+output: html_document
+---
+
+A análise será feita em três séries específicas: Desperate Housewives, House e Friends e tem como objetivo exibir os episódios de cada temporada e seu respectivo nível de amor, definido pela proporção de usuários que deram nota máxima aos episódios.
+
+```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(here)
+library(plotly)
+theme_set(theme_bw())
+```
+```{r include=FALSE}
+episodes = read_csv(here("data/series_from_imdb.csv"), 
+                    progress = FALSE,
+                    col_types = cols(.default = col_double(), 
+                                     series_name = col_character(), 
+                                     episode = col_character(), 
+                                     url = col_character(),
+                                     season = col_character())) %>% 
+    filter(series_name %in% c("Friends", "Desperate Housewives", "House"))
+episodes =  episodes %>%
+    mutate(
+        rank_amados = row_number(r10)) # maior = mais amado
+```
+
+```{r echo=FALSE, warning=FALSE}
+legendtitle <- list(yref='paper',xref="paper",y=1.04,x=1.3, text="Nome da série",showarrow=F)
+
+plot_ly(episodes, x = episodes$r10, y = episodes$season, type = 'scatter',
+        text = paste(
+                    "Série:", episodes$series_name,
+                     "Season:", episodes$season,
+                     "Episode: ", episodes$episode,
+                     "Nível de amor:", episodes$rank_amados,
+                     "Número de votos", episodes$user_votes
+                     ),
+        mode = "markers", marker = list(symbol = 'diamond-x'), color = episodes$series_name, size = episodes$rank_amados) %>% layout(annotations=legendtitle )
+    
+
+```
