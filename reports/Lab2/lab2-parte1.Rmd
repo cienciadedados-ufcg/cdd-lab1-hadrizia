@@ -5,7 +5,7 @@ date: "21 de maio de 2018"
 output: html_document
 ---
 
-A análise será feita em três séries específicas: Desperate Housewives, House e Friends e tem como objetivo exibir os episódios de cada temporada e seu respectivo nível de amor, definido pela proporção de usuários que deram nota máxima aos episódios.
+A análise será feita em três séries específicas: Desperate Housewives, House e Friends e tem como objetivo exibir os episódios de cada temporada e seu respectivo nível de chatice, que vai de 1 a 100%, definido pela proporção de usuários que deram nota neutra aos episódios sobre o número total de votos. Além do nível de chatice (representado pela estrela) em relação às temporadas e episódios de cada série, são exibidas as respectivas séries (representadas pelas cores) e o número de votos de cada episódio, representado pelo tamanho da estrela - quanto maior, mais votos no episódio.
 
 ```{r setup, echo=FALSE, warning=FALSE, message=FALSE}
 library(tidyverse)
@@ -13,6 +13,7 @@ library(here)
 library(plotly)
 theme_set(theme_bw())
 ```
+
 ```{r include=FALSE}
 episodes = read_csv(here("data/series_from_imdb.csv"), 
                     progress = FALSE,
@@ -24,7 +25,7 @@ episodes = read_csv(here("data/series_from_imdb.csv"),
     filter(series_name %in% c("Friends", "Desperate Housewives", "House"))
 episodes =  episodes %>%
     mutate(
-        rank_amados = row_number(r10)) # maior = mais amado
+        rank_amados = row_number(r5)) # maior = mais sem graça
 ```
 
 ```{r echo=FALSE, warning=FALSE}
@@ -33,12 +34,18 @@ legendtitle <- list(yref='paper',xref="paper",y=1.04,x=1.3, text="Nome da série
 plot_ly(episodes, x = episodes$r10, y = episodes$season, type = 'scatter',
         text = paste(
                     "Série:", episodes$series_name,
-                     "Season:", episodes$season,
-                     "Episode: ", episodes$episode,
-                     "Nível de amor:", episodes$rank_amados,
-                     "Número de votos", episodes$user_votes
+                     "\nSeason:", episodes$season,
+                     "\nEpisode: ", episodes$season_ep,
+                     "\nNível de chatice:", episodes$rank_amados,
+                     "\nNúmero de votos", episodes$user_votes
                      ),
-        mode = "markers", marker = list(symbol = 'diamond-x'), color = episodes$series_name, size = episodes$rank_amados) %>% layout(annotations=legendtitle )
-    
-
+        mode = "markers", marker = list(symbol = 'star-dot'), 
+        color = episodes$series_name, size = episodes$user_votes) %>% 
+    layout(title = "Nível de chatice dos episódios", 
+           annotations=legendtitle, 
+           xaxis = list(title = "Nível de chatice", tickformat = "%"), 
+           yaxis = list(title = "Temporada"))
 ```
+
+House é a série que possui mais episódios sem graça, seguido por Friends e Desperate Housewives. Dentre as temporadas da série, as que possuem episódios mais sem graça são as temporadas 6, 7 e 8. O episódio mais chato de todos os tempos de acordo com os votos dos usuários é House S4E16 (Season Finale): Wilson's Heart, onde **alerta de spoiler** House participa de um acidente em um ônibus e passa o episódio inteiro tentando lembrar qual a pessoa ele tem de salvar e faz de tudo para tentar lembrar até descobrir a pessoa que, pelo título sugestivo do episódio, é bastante importante para Wilson, o melhor amigo de House. Eu particularmente gostei bastante do episódio, pois fiquei muito curiosa com o desenrolar da trama e bem surpresa com a descoberta da tal pessoa **fim de spoiler**.
+O segundo episódio mais chato é também de House, S6E1: Broken, onde **alerta de spoiler 2** House está internado em um hospital psiquiátrico e tenta de tudo para sair de lá (sem sucesso). Acredito que esse episódio tenha recebido essa posição pois é diferente de todos os outros, uma vez que ele não faz nenhum diagnóstico, o episódio gira em torno do personagem **fim do spoiler**. O terceiro episódio mais chato é também de House :(, S5E24: Both Sides Now (Season Finale), onde **alerta de spoiler 3** House pensa estar finalmente livre das alucinações, do Vicodin e que tem algo acontecendo entre ele e Cuddy**fim do spoiler**. Analisando esses episódios que falam mais do personagem principal e não sobre casos de pacientes com difíceis diagósticos, pode-se concluir que os fãs do seriado preferem episódios mais voltados ao diagnóstico de pacientes do que os que englobam o personagem principal.
